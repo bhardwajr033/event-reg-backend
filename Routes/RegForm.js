@@ -1,7 +1,24 @@
 const express = require("express");
 const { body, validationResult } = require("express-validator");
+const fs = require("fs");
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
 
 const formRouter = express.Router();
+
+const saveRegistration = (data) => {
+  const filePath = path.join(__dirname, "registrations.json");
+  let registrations = [];
+
+  if (fs.existsSync(filePath)) {
+    const existingData = fs.readFileSync(filePath);
+    registrations = JSON.parse(existingData);
+  }
+
+  registrations.push(data);
+
+  fs.writeFileSync(filePath, JSON.stringify(registrations, null, 2));
+};
 
 formRouter.post(
   "/",
@@ -21,8 +38,8 @@ formRouter.post(
     body("phone_number")
       .notEmpty()
       .withMessage("Phone number is required")
-      .matches(/^\d{10}$/)
-      .withMessage("Phone number must be 10 digits"),
+      .matches(/^\d+$/)
+      .withMessage("Phone number must contain only digits"),
     body("event")
       .notEmpty()
       .withMessage("Event is required")
@@ -37,10 +54,13 @@ formRouter.post(
 
     try {
       const { name, email, phone_number, event } = req.body;
+      const id = uuidv4();
+      saveRegistration({ id, name, email, phone_number, event });
 
       res.json({
         success: "Form data is valid and processed",
         data: {
+          id,
           name,
           email,
           phone_number,
